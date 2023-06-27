@@ -68,3 +68,8 @@ This section has moved here: [https://facebook.github.io/create-react-app/docs/d
 ### `npm run build` fails to minify
 
 This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+
+### Visualizaitons to complete
+- [ ] Monster CR vs. Monster hitpoints
+- [ ] Monster Race vs. Monster AC
+- [ ] Monster Race vs. Monster hitpoints
