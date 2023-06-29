@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Thing</title>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+    <script src="https://cdn.tailwindcss.com"></script>
+</head>
+<body>
+
+    <svg id="race-hp-chart" class="h-[1000px] w-full mx-0" >
+    </svg>
+
+    <svg id="cr-hp-chart" class="h-[1000px] w-full mx-0" >
+    </svg>
+
+    <script>
+        d3.csv("dnd_monsters.csv")
+            .then(data => {
+                data.sort((a, b) => a.country < b.country)
+
+                const height = 1000;
+                const width = 1000;
+                const margin = 40;
+                const marginLeft = 200
+
+                const RaceHp = d3.groups(data, d => d.type)
+                .map(d => {
+                    const hp = d[1].map(v => parseInt(v.hp)).sort((a, b) => a - b)
+                    return {
+                    key: d[0],
+                    value: {
+                        min: d3.min(hp),
+                        max: d3.max(hp),
+                        median: d3.median(hp),
+                        q1: d3.quantile(hp, .25),
+                        q3: d3.quantile(hp, .75)
+                    }
+                    }
+                })
+                console.log(RaceHp)
+
+                const CrHp = d3.groups(data, d => d.cr)
+                .map(d => {
+                    const hp = d[1].map(v => parseInt(v.hp)).sort((a, b) => a - b)
+                    return {
+                    key: d[0],
+                    value: {
+                        min: d3.min(hp),
+                        max: d3.max(hp),
+                        median: d3.median(hp),
+                        q1: d3.quantile(hp, .25),
+                        q3: d3.quantile(hp, .75)
+                    }
+                    }
+                })
+
+                const hpExtent = d3.extent(RaceHp, d => d.value.max)
+                const x = d3.scaleLinear()
+                    .domain(hpExtent)
+                    .range([marginLeft, width - marginLeft])
+
+                console.log(RaceHp.map(v => v.key))
+
+                const y = d3.scaleBand()
+                    .domain(RaceHp.map(v => v.key))
+                    .range([height - margin, margin])
+                    .padding(.01)
+
+                const svg1 = d3.select("#race-hp-chart")
+
+                svg1 
+                    .append('g')
+                    .attr('transform', `translate(${marginLeft}, 0)`)
+                    .call(d3.axisLeft(y))
+
+                svg1 
+                    .append('g')
+                    .attr('transform', `translate(${0}, ${height - margin})`)
+                    .call(d3.axisBottom(x))
+
+                const barGroup = svg1.append('g')
+                barGroup
+                    .selectAll('rect')
+                    .data(RaceHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x(d.value.q1))
+                    .attr('y', d => y(d.key))
+                    .attr('height', y.bandwidth())
+                    .attr('width', d => d.value.q3 - d.value.q1)
+                    .attr('fill', "lightgray")
+
+                
+            })
+    </script>
+</body>
+</html>
