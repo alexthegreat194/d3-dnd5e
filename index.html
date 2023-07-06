@@ -9,11 +9,71 @@
 </head>
 <body>
 
-    <svg id="race-hp-chart" class="h-[1000px] w-full mx-0" >
-    </svg>
+    <div class="flex gap-5 justify-center m-5">
+        <button id="btn1" value="race-hp-chart-div" class="border rounded-xl p-2 bg-slate-400 hover:bg-slate-300 active:bg-slate-600 shadow-md">Race vs Hp</button>
+        <button id="btn2" value="race-hp-chart2-div" class="border rounded-xl p-2 bg-slate-400 hover:bg-slate-300 active:bg-slate-600 shadow-md">Race(humanoid) vs Hp</button>
+        <button id="btn3" value="cr-hp-chart-div" class="border rounded-xl p-2 bg-slate-400 hover:bg-slate-300 active:bg-slate-600 shadow-md">Cr vs Hp</button>
+    </div>
 
-    <svg id="cr-hp-chart" class="h-[1000px] w-full mx-0" >
-    </svg>
+    <div id="race-hp-chart-div" class="container w-max flex items-center mx-auto">
+        <h1 class="text-5xl font-bold rotate-90 self-center">Race</h1>
+        <div class="flex flex-col w-max">
+            <svg id="race-hp-chart" class="h-[1000px] w-[1000px] mx-0" ></svg>
+            <h1 class="text-5xl font-bold self-center">Hp</h1>
+        </div>
+    </div>
+    
+
+    <div id="race-hp-chart2-div" class="container w-max flex items-center mx-auto">
+        <h1 class="text-5xl font-bold rotate-90 self-center">Race(humanoid)</h1>
+        <div class="flex flex-col w-max">
+            <svg id="race-hp-chart2" class="h-[1000px] w-[1000px] mx-0" ></svg>
+            <h1 class="text-5xl font-bold self-center">Hp</h1>
+        </div>
+    </div>
+    
+
+    <div id="cr-hp-chart-div" class="container w-max flex items-center mx-auto">
+        <h1 class="text-5xl font-bold rotate-90 w-min">CR</h1>
+        <div class="flex flex-col w-max">
+            <svg id="cr-hp-chart" class="h-[1000px] w-[1000px] mx-0" ></svg>
+            <h1 class="text-5xl font-bold self-center">Hp</h1>
+        </div>
+    </div>
+    
+
+    <script>
+        const btn1 = document.querySelector('#btn1')
+        const btn2 = document.querySelector('#btn2')
+        const btn3 = document.querySelector('#btn3')
+
+        const toggleSvg = (name) => {
+            const divs = document.querySelectorAll('.container')
+            divs.forEach(div => {
+                if(div.id === name) {
+                    div.style.visibility = 'visible'
+                    div.style.display = 'flex'
+                } else {
+                    div.style.visibility = 'hidden'
+                    div.style.display = 'none'  
+                }
+            })
+        }
+
+        btn1.addEventListener('click', () => {
+            toggleSvg(btn1.value)
+        })
+
+        btn2.addEventListener('click', () => {
+            toggleSvg(btn2.value)
+        })
+
+        btn3.addEventListener('click', () => {
+            toggleSvg(btn3.value)
+        })
+
+        toggleSvg(btn1.value)
+    </script>
 
     <script>
         d3.csv("dnd_monsters.csv")
@@ -21,9 +81,9 @@
                 data.sort((a, b) => a.country < b.country)
 
                 const height = 1000;
-                const width = 1000;
+                const width = 1500;
                 const margin = 40;
-                const marginLeft = 200
+                const marginLeft = 200;
 
                 const RaceHp = d3.groups(data, d => d.type)
                 .map(d => {
@@ -38,8 +98,16 @@
                         q3: d3.quantile(hp, .75)
                     }
                     }
+                }).sort((a, b) => b.value.max - a.value.max)
+
+                const humanoidHp = RaceHp.filter(v => v.key.indexOf('humanoid') !== -1).map(v => {
+                    v.key = v.key.slice(v.key.indexOf('(') + 1, v.key.indexOf(')'))
+                    return v
                 })
-                console.log(RaceHp)
+
+                const nonhumanoidHp = RaceHp.filter(v => v.key.indexOf('humanoid') === -1)
+
+                console.log({humanoidHp, nonhumanoidHp})
 
                 const CrHp = d3.groups(data, d => d.cr)
                 .map(d => {
@@ -54,43 +122,265 @@
                         q3: d3.quantile(hp, .75)
                     }
                     }
-                })
+                }).sort((a, b) => b.value.max - a.value.max)
 
-                const hpExtent = d3.extent(RaceHp, d => d.value.max)
-                const x = d3.scaleLinear()
-                    .domain(hpExtent)
-                    .range([marginLeft, width - marginLeft])
+                const hpExtent = d3.extent(nonhumanoidHp, d => d.value.max)
+                console.log(hpExtent)
+                const x1 = d3.scaleLinear()
+                    .domain([0, hpExtent[1]])
+                    .range([marginLeft, width - margin])
 
-                console.log(RaceHp.map(v => v.key))
+                const y1 = d3.scaleBand()
+                    .domain(nonhumanoidHp.map(v => v.key))
+                    .range([height - margin, margin])
+                    .padding(.01)
 
-                const y = d3.scaleBand()
-                    .domain(RaceHp.map(v => v.key))
+                const x2 = d3.scaleLinear()
+                    .domain([0, d3.extent(CrHp, d => d.value.max)[1]])
+                    .range([margin, width - margin])
+
+                const y2 = d3.scaleBand()
+                    .domain(CrHp.map(v => v.key))
+                    .range([height - margin, margin])
+                    .padding(.01)
+
+                const x3 = d3.scaleLinear()
+                    .domain([0, d3.extent(humanoidHp, d => d.value.max)[1]])
+                    .rangeRound([marginLeft, width - margin])
+
+                const y3 = d3.scaleBand()
+                    .domain(humanoidHp.map(v => v.key))
                     .range([height - margin, margin])
                     .padding(.01)
 
                 const svg1 = d3.select("#race-hp-chart")
+                const svg2 = d3.select("#cr-hp-chart")
+                const svg3 = d3.select("#race-hp-chart2")
+
+                const yAxis1 = d3.axisLeft(y1)
+                const yAxis2 = d3.axisLeft(y2)
+                const yAxis3 = d3.axisLeft(y3)
+
+                const xAxis1 = d3.axisBottom(x1)
+                const xAxis2 = d3.axisBottom(x2)
+                const xAxis3 = d3.axisBottom(x3)
 
                 svg1 
                     .append('g')
                     .attr('transform', `translate(${marginLeft}, 0)`)
-                    .call(d3.axisLeft(y))
+                    .call(yAxis1)
 
                 svg1 
                     .append('g')
                     .attr('transform', `translate(${0}, ${height - margin})`)
-                    .call(d3.axisBottom(x))
+                    .call(xAxis1)
+
+                svg2 
+                    .append('g')
+                    .attr('transform', `translate(${margin}, 0)`)
+                    .call(yAxis2)
+
+                svg2 
+                    .append('g')
+                    .attr('transform', `translate(${0}, ${height - margin})`)
+                    .call(xAxis2)
+
+                svg3
+                    .append('g')
+                    .attr('transform', `translate(${margin}, 0)`)
+                    .call(yAxis3)
+
+                svg3    
+                    .append('g')
+                    .attr('transform', `translate(${margin}, ${height - margin})`)
+                    .call(xAxis3)
 
                 const barGroup = svg1.append('g')
+
                 barGroup
-                    .selectAll('rect')
+                    .selectAll('.line')
+                    .data(RaceHp)
+                    .enter()
+                    .append('line')
+                    .attr('x1', d => {
+                        console.log(d.value.min)
+                        return x1(d.value.min)
+                    })
+                    .attr('y1', d => y1(d.key) + y1.bandwidth()/2)
+                    .attr('x2', d => x1(d.value.max))
+                    .attr('y2', d => y1(d.key) + y1.bandwidth()/2)
+                    .attr('stroke', 'black')
+
+                barGroup
+                    .selectAll('.bar')
                     .data(RaceHp)
                     .enter()
                     .append('rect')
-                    .attr('x', d => x(d.value.q1))
-                    .attr('y', d => y(d.key))
-                    .attr('height', y.bandwidth())
+                    .attr('x', d => x1(d.value.q1))
+                    .attr('y', d => y1(d.key))
+                    .attr('height', y1.bandwidth())
+                    .attr('width', d => Math.abs(d.value.q3 - d.value.q1))
+                    .attr('fill', "lightgray")
+                    .attr('class', 'bar')
+                    
+                barGroup
+                    .selectAll('.max')
+                    .data(RaceHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x1(d.value.max))
+                    .attr('y', d => y1(d.key))
+                    .attr('height', y1.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "red")
+                    .attr('class', 'max')
+                    
+                barGroup
+                    .selectAll('.min')
+                    .data(RaceHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x1(d.value.min))
+                    .attr('y', d => y1(d.key))
+                    .attr('height', y1.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "green")
+                    .attr('class', 'min')
+                    
+                barGroup
+                    .selectAll('.median')
+                    .data(RaceHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x1(d.value.median))
+                    .attr('y', d => y1(d.key))
+                    .attr('height', y1.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "black")
+                    .attr('class', 'median')
+
+
+                const barGroup2 = svg2.append('g')
+                barGroup2
+                    .selectAll('.line')
+                    .data(CrHp)
+                    .enter()
+                    .append('line')
+                    .attr('x1', d => x2(d.value.min))
+                    .attr('y1', d => y2(d.key) + y2.bandwidth()/2)
+                    .attr('x2', d => x2(d.value.max))
+                    .attr('y2', d => y2(d.key) + y2.bandwidth()/2)
+                    .attr('stroke', 'black')
+
+                barGroup2
+                    .selectAll('.bar')
+                    .data(CrHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x2(d.value.q1))
+                    .attr('y', d => y2(d.key))
+                    .attr('height', y2.bandwidth())
                     .attr('width', d => d.value.q3 - d.value.q1)
                     .attr('fill', "lightgray")
+                    .attr('class', 'bar')
+
+                    
+                barGroup2
+                    .selectAll('.max')
+                    .data(CrHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x2(d.value.max))
+                    .attr('y', d => y2(d.key))
+                    .attr('height', y2.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "red")
+                    .attr('class', 'max')
+                    
+                barGroup2
+                    .selectAll('.min')
+                    .data(CrHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x2(d.value.min))
+                    .attr('y', d => y2(d.key))
+                    .attr('height', y2.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "green")
+                    .attr('class', 'min')
+                    
+                barGroup2
+                    .selectAll('.median')
+                    .data(CrHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x2(d.value.median))
+                    .attr('y', d => y2(d.key))
+                    .attr('height', y2.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "black")
+                    .attr('class', 'median')
+
+                const barGroup3 = svg3.append('g')
+
+                barGroup3
+                    .selectAll('.line')
+                    .data(humanoidHp)
+                    .enter()
+                    .append('line')
+                    .attr('x1', d => x3(d.value.min))
+                    .attr('y1', d => y3(d.key) + y3.bandwidth()/2)
+                    .attr('x2', d => x3(d.value.max))
+                    .attr('y2', d => y3(d.key) + y3.bandwidth()/2)
+                    .attr('stroke', 'black')
+
+                barGroup3
+                    .selectAll('.bar')
+                    .data(humanoidHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x3(d.value.q1))
+                    .attr('y', d => y3(d.key))
+                    .attr('height', y3.bandwidth())
+                    .attr('width', d => d.value.q3 - d.value.q1)
+                    .attr('fill', "lightgray")
+                    .attr('class', 'bar')
+
+                barGroup3
+                    .selectAll('.max')
+                    .data(humanoidHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x3(d.value.max))
+                    .attr('y', d => y3(d.key))
+                    .attr('height', y3.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "red")
+                    .attr('class', 'max')
+
+                barGroup3
+                    .selectAll('.min')
+                    .data(humanoidHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x3(d.value.min))
+                    .attr('y', d => y3(d.key))
+                    .attr('height', y3.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "green")
+                    .attr('class', 'min')
+
+                barGroup3
+                    .selectAll('.median')
+                    .data(humanoidHp)
+                    .enter()
+                    .append('rect')
+                    .attr('x', d => x3(d.value.median))
+                    .attr('y', d => y3(d.key))
+                    .attr('height', y3.bandwidth())
+                    .attr('width', d => 1)
+                    .attr('fill', "black")
+                    .attr('class', 'median')
 
                 
             })
